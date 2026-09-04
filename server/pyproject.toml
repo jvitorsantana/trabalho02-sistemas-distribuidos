@@ -23,3 +23,21 @@ torchvision = { index = "pytorch-cu126" }
 dev = [
     "ruff>=0.16.6",
 ]
+
+[tool.ruff]
+line-length = 88
+indent-width = 2
+
+[tool.ruff.format]
+quote-style = 'single'
+indent-style = 'space'
+line-ending = 'lf'
+
+[tool.ruff.lint]
+select = [
+    'E',
+    'F',
+    'I',
+    'UP',
+    'B',
+]

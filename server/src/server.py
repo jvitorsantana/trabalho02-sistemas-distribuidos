@@ -2,78 +2,63 @@ import json
 import socket
 import threading
 
-from config import Config
 from detector import Detector
-from protocol import ProtocolError, read_frame, send_frame
-
+from protocol import read_frame, send_frame
 
 class Server:
-    def __init__(self, config: Config, detector: Detector) -> None:
-        self.config = config
-        self.detector = detector
-        self._inference_lock = threading.Lock()
+  def __init__(self, host, port, detector: Detector):
+    self.host = host
+    self.port = port
+    self.detector = detector
+    self._lock = threading.Lock()
 
-    def serve_forever(self) -> None:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server.bind((self.config.host, self.config.port))
-            server.listen(self.config.backlog)
 
-            print(f"[rede] escutando em {self.config.host}:{self.config.port}")
-            print("\n[!] Aguardando imagem...\n")
+  def start(self):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+      server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+      server.bind((self.host, self.port))
+      server.listen(5)
 
-            while True:
-                try:
-                    conn, addr = server.accept()
-                except KeyboardInterrupt:
-                    print("\n[rede] encerrando servidor.")
-                    break
+      server.settimeout(1.0)
 
-                threading.Thread(
-                    target=self._handle_client, args=(conn, addr), daemon=True
-                ).start()
+      print(f'[rede] escutando em {self.host}:{self.port}')
+      print('\n[!] Aguardando imagem...\n')
 
-    def _handle_client(self, conn: socket.socket, addr: tuple) -> None:
-        client = f"{addr[0]}:{addr[1]}"
-        print(f"[conexao] {client} conectado")
+      try:
+        while True:
+          try:
+            conn, addr = server.accept()
+          except socket.timeout:
+            continue
+          threading.Thread(target=self._handle, args=(conn, addr), daemon=True).start()
+      except KeyboardInterrupt:
+        print('\n[rede] encerrando servidor.')
 
-        with conn:
-            conn.settimeout(self.config.client_timeout)
-            try:
-                while True:
-                    try:
-                        jpeg = read_frame(conn)
-                    except ConnectionError:
-                        break
+  def _handle(self, conn: socket.socket, addr: tuple):
+    client = f'{addr[0]}:{addr[1]}'
+    print(f'Cliente[{client}] conectado!')
 
-                    print(f"[conexao] {client} enviou {len(jpeg)} bytes")
+    with conn:
+      try:
+        while True:
+          try:
+            jpg = read_frame(conn)
+          except ConnectionError:
+            break
+          print(f'Cliente[{client}] enviou {len(jpg)} bytes')
 
-                    try:
-                        with self._inference_lock:
-                            response = self.detector.detect(jpeg)
-                        print(
-                            f"[deteccao] {client} -> {response['summary'] or 'nada'}"
-                            f" ({response['elapsed_ms']} ms)"
-                        )
-                    except Exception as exc:
-                        response = {
-                            "ok": False,
-                            "objects": [],
-                            "summary": [],
-                            "message": "Erro ao processar a imagem",
-                            "error": str(exc),
-                        }
-                        print(f"[erro] {client}: {exc}")
+          try:
+            with self._lock:
+              response = self.detector.detect(jpg)
+            print(f'Cliente[{client}] -> {response['message']}')
 
-                    send_frame(
-                        conn, json.dumps(response, ensure_ascii=False).encode("utf-8")
-                    )
+          except Exception as e:
+            response = {'summary': [], 'message': 'Erro ao processar a fota'}
+            print(f'Erro no cliente[{client}]: {e}')
 
-            except socket.timeout:
-                print(f"[conexao] {client} ocioso, desconectado")
-            except ProtocolError as exc:
-                print(f"[erro] {client} protocolo invalido: {exc}")
-            except OSError as exc:
-                print(f"[erro] {client} falha de socket: {exc}")
+          send_frame(conn, json.dumps(response, ensure_ascii=False).encode('utf-8'))
+      except (ValueError, OSError) as e:
+        print(f'Erro técnico ({client}): {e}')
 
-        print(f"[conexao] {client} desconectado")
+
+    print(f'Cliente[{client}] desconectado')
