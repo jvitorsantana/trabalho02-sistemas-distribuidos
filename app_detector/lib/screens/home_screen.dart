@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import '../services/camera_service.dart';
+import '../services/image_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +15,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final CameraService _cameraService = CameraService();
+  final ImageService _imageService = ImageService();
 
   bool _isInitialized = false;
   String? _error;
@@ -42,11 +46,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _takePicture() async {
     try {
-      final photo = await _cameraService.takePicture();
+      // Captura a imagem e obtém os bytes do JPEG original.
+      final Uint8List originalBytes =
+          await _cameraService.takePicture();
 
-      debugPrint('Foto capturada: ${photo.path}');
+      // Redimensiona e comprime a imagem conforme os requisitos.
+      final Uint8List processedBytes =
+          _imageService.processImage(originalBytes);
+
+      debugPrint(
+        'Imagem original: ${originalBytes.length} bytes',
+      );
+
+      debugPrint(
+        'Imagem processada: ${processedBytes.length} bytes',
+      );
     } catch (e) {
-      debugPrint('Erro ao tirar foto: $e');
+      debugPrint('Erro ao tirar/processar foto: $e');
     }
   }
 
@@ -60,10 +76,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return Scaffold(
+        appBar: AppBar(
+          title: const Text('Detector de Objetos'),
+        ),
         body: Center(
-          child: Text(
-            'Erro ao inicializar câmera:\n$_error',
-            textAlign: TextAlign.center,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Erro ao inicializar câmera:\n$_error',
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       );
