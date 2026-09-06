@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 
@@ -28,7 +27,7 @@ class CameraService {
     await _controller!.initialize();
   }
 
-  Future<Uint8List> takePicture() async {
+  Future<XFile> takePicture() async {
     if (_controller == null || !_controller!.value.isInitialized) {
       throw StateError('A câmera não foi inicializada.');
     }
@@ -37,9 +36,7 @@ class CameraService {
       throw StateError('Uma foto já está sendo capturada.');
     }
 
-    final XFile photo = await _controller!.takePicture();
-
-    return await photo.readAsBytes();
+    return await _controller!.takePicture();
   }
 
   Future<void> dispose() async {
