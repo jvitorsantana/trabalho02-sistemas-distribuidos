@@ -30,7 +30,7 @@ class Detector:
       verbose = False
     )[0]
 
-    name = datetime.now().strftime('%d%m%Y_%H%M%S')[:-3] + '.jpg'
+    name = datetime.now().astimezone().strftime('%d%m%Y_%H%M%S_%z') + '.jpg'
     cv2.imwrite(str(CAPTURES_DIR / name), result.plot())
 
     counts = {}
