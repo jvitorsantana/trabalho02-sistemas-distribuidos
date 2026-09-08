@@ -10,6 +10,7 @@ import '../models/detection_result.dart';
 import '../services/camera_service.dart';
 import '../services/image_service.dart';
 import '../services/socket_service.dart';
+import '../widgets/server_settings_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -173,109 +174,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showServerSettings() async {
-    final hostController = TextEditingController(
-      text: _serverHost,
-    );
-
-    final portController = TextEditingController(
-      text: _serverPort.toString(),
-    );
-
-    final formKey = GlobalKey<FormState>();
-
-    final result = await showDialog<Map<String, dynamic>>(
+    final settings = await showDialog<ServerSettings>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Configuração do servidor'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: hostController,
-                  decoration: const InputDecoration(
-                    labelText: 'IP do servidor',
-                    hintText: 'Ex.: 192.168.1.100',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.url,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Informe o IP ou endereço.';
-                    }
-
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: portController,
-                  decoration: const InputDecoration(
-                    labelText: 'Porta',
-                    hintText: 'Ex.: 25565',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    final port = int.tryParse(value ?? '');
-
-                    if (port == null) {
-                      return 'Informe uma porta válida.';
-                    }
-
-                    if (port < 1 || port > 65535) {
-                      return 'A porta deve estar entre 1 e 65535.';
-                    }
-
-                    return null;
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancelar'),
-            ),
-
-            FilledButton(
-              onPressed: () {
-                if (!formKey.currentState!.validate()) {
-                  return;
-                }
-
-                Navigator.pop(
-                  context,
-                  {
-                    'host': hostController.text.trim(),
-                    'port': int.parse(portController.text),
-                  },
-                );
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
+        return ServerSettingsDialog(
+          initialHost: _serverHost,
+          initialPort: _serverPort,
         );
       },
     );
 
-    hostController.dispose();
-    portController.dispose();
-
-    if (result == null || !mounted) {
+    if (settings == null || !mounted) {
       return;
     }
 
     setState(() {
-      _serverHost = result['host'];
-      _serverPort = result['port'];
+      _serverHost = settings.host;
+      _serverPort = settings.port;
     });
   }
 
