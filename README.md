@@ -63,15 +63,15 @@ Servidor e app precisam usar a **mesma porta**. O host no app deve ser alcançá
 
 **App**
 
-- [coloque o link da foto aqui]
+![Imagem da tela inicial do app](/assets/img1.png)
 
 **Imagem capturada**
 
-- [coloque o link da foto aqui]
+![Imagem da tela com uma imagem capturada](/assets/img2.png)
 
 **Resultado da detecção**
 
-- [coloque o link da foto aqui]
+![Imagem da tela com o resultado do processamento da imagem capturada](/assets/img3.png)
 
 
 
